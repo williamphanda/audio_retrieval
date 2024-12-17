@@ -1,0 +1,40 @@
+version: "3.2"
+networks:
+  default:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 191.3.0.0/24
+volumes:
+  postgres-data: {}
+services:
+  audio-retrieval-http:
+    container_name: audio-retrieval-http
+    image: audio-retrieval-http
+    build:
+      context: .dev
+      dockerfile: development.dockerfile
+      args:
+        SERVICE_NAME: 'app-http'
+    volumes:
+      - ".:/go/src/personal/audio_retrieval/audio_retrieval" #pls change if you clone in a different directory
+      - $GOPATH/pkg/mod/cache:/go/pkg/mod/cache
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+  postgres:
+    container_name: postgres-audio-retrieval
+    image: postgres:12.0-alpine
+    environment:
+      POSTGRES_DB: audio-retrieval
+      POSTGRES_PASSWORD: supersecretpassword
+      POSTGRES_USER: superuser
+      PGDATA: /var/lib/postgresql/data/audio-retrieval
+    volumes:
+      - postgres-data:/var/lib/postgresql/data/audio-retrieval
+      - .docker/database_scripts:/docker-entrypoint-initdb.d
+      - .docker/seeding/seeds:/seeds
+    ports:
+      - "5432:5432"
